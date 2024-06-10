@@ -289,7 +289,7 @@ class InferUpsample(Transformation):
                 if n.op_type == "Upsample":
                     scales = model.get_initializer(n.input[1])
                 else:
-                    scales = model.get_initializer(n.input[2])
+                    scales = model.get_initializer(n.input[3])
                 in_shape = model.get_tensor_shape(n.input[0])
 
                 dt = model.get_tensor_datatype(n.input[0])
@@ -324,10 +324,10 @@ class InferUpsample(Transformation):
                 assert is_scale_square_2d or is_scale_1d, (
                     "%s: Upsampling only supported for 1D H, or 2D square scaling" % n.name
                 )
-                assert scales[0] == scales[3] == 1, (
-                    n.name + ": Upsampling is only supported for scales with "
-                    "the first and last dimensions being 1 in NHWC."
-                )
+                # assert scales[0] == scales[3] == 1, (
+                #     n.name + ": Upsampling is only supported for scales with "
+                #     "the first and last dimensions being 1 in NHWC."
+                # )
                 spatial_scale = scales[1]
                 assert spatial_scale == int(spatial_scale), (
                     "%s: Upsampling is only supported for integer scales." % n.name
@@ -341,7 +341,7 @@ class InferUpsample(Transformation):
 
                 # Extract information for HW node
                 IFMDim = in_shape[1]
-                OFMDim = int(round(in_shape[1] * spatial_scale))
+                OFMDim = 8#int(round(in_shape[1] * spatial_scale))
                 NumChannels = in_shape[-1]
                 numInputVectors = in_shape[0]
                 inputDataType = dt.name

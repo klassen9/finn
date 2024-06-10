@@ -78,9 +78,11 @@ RUN cd verilator && \
     make -j4 && \
     make install
 
+# wget -U 'Mozilla/5.0' "https://www.amd.com/bin/public/amdOpenDownload?filename=$XRT_DEB_VERSION.deb" -O /tmp/$XRT_DEB_VERSION.deb --debug && \
+
 # install XRT
 RUN if [ -z "$SKIP_XRT" ];then \
-    wget -U 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17' "https://www.amd.com/bin/public/amdOpenDownload?filename=$XRT_DEB_VERSION.deb" -O /tmp/$XRT_DEB_VERSION.deb --debug && \
+    wget -U 'Mozilla/5.0' "https://www.amd.com/bin/public/amdOpenDownload?filename=$XRT_DEB_VERSION.deb" -O /tmp/$XRT_DEB_VERSION.deb --debug && \
     apt install -y /tmp/$XRT_DEB_VERSION.deb && \
     rm /tmp/$XRT_DEB_VERSION.deb; fi
 
@@ -135,5 +137,17 @@ COPY docker/finn_entrypoint.sh /usr/local/bin/
 COPY docker/quicktest.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/finn_entrypoint.sh
 RUN chmod 755 /usr/local/bin/quicktest.sh
+
+ARG USERNAME=finn-user
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+USER $USERNAME
+
 ENTRYPOINT ["finn_entrypoint.sh"]
 CMD ["bash"]

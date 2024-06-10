@@ -760,7 +760,7 @@ class MakeScaleResizeNHWC(Transformation):
                 if n.op_type == "Upsample":
                     scales_ind = 1
                 else:
-                    scales_ind = 2
+                    scales_ind = 3
                 if producer is not None and producer.op_type == "Transpose":
                     perms = list(get_by_name(producer.attribute, "perm").ints)
                     if perms == [0, 3, 1, 2]:
