@@ -758,18 +758,30 @@ class MakeScaleResizeNHWC(Transformation):
                 consumer = model.find_consumer(n.output[0])
                 producer = model.find_producer(n.input[0])
                 if n.op_type == "Upsample":
-                    scales_ind = 1
+                    transformation_ind = 1
                 else:
-                    scales_ind = 2
+                    if len(n.input) == 4:
+                        assert ((n.input[2] != '') ^ (n.input[3] != '')), (
+                            "%s: Either scales or the target output size must " 
+                            "be specified. Specifying both is prohibited." % n.name
+                        )
+
+                        if n.input[2] != '': 
+                            transformation_ind = 2
+                        else:
+                            transformation_ind = 3
+                    else :
+                        transformation_ind = 2 
+                                          
                 if producer is not None and producer.op_type == "Transpose":
                     perms = list(get_by_name(producer.attribute, "perm").ints)
                     if perms == [0, 3, 1, 2]:
-                        old_value = model.get_initializer(n.input[scales_ind])
+                        old_value = model.get_initializer(n.input[transformation_ind])
                         new_value = np.array(
                             [old_value[idx] for idx in (0, 2, 3, 1)],
                             dtype=np.dtype("float32"),
                         )
-                        model.set_initializer(n.input[scales_ind], new_value)
+                        model.set_initializer(n.input[transformation_ind], new_value)
                         start_name = producer.input[0]
                         mid_name = n.input[0]
                         end_name = n.output[0]
@@ -786,12 +798,12 @@ class MakeScaleResizeNHWC(Transformation):
                 elif consumer is not None and consumer.op_type == "Transpose":
                     perms = list(get_by_name(consumer.attribute, "perm").ints)
                     if perms == [0, 2, 3, 1]:
-                        old_value = model.get_initializer(n.input[scales_ind])
+                        old_value = model.get_initializer(n.input[transformation_ind])
                         new_value = np.array(
                             [old_value[idx] for idx in (0, 2, 3, 1)],
                             dtype=np.dtype("float32"),
                         )
-                        model.set_initializer(n.input[scales_ind], new_value)
+                        model.set_initializer(n.input[transformation_ind], new_value)
                         start_name = n.input[0]
                         mid_name = consumer.input[0]
                         end_name = consumer.output[0]
