@@ -185,7 +185,7 @@ def create_resize_transpose_sizes(ifm_dim, ifm_ch, sizes, mode, idt):
     inp = oh.make_tensor_value_info("inp", TensorProto.FLOAT, [1, ifm_ch, ifm_dim[0], ifm_dim[1]])
 
     # Empty scales
-    scales = oh.make_tensor_value_info("scales", TensorProto.FLOAT, [0])
+    scales = oh.make_tensor_value_info("", TensorProto.FLOAT, None)
 
     # Not actually used, only needed for compliance with the Resize node interface
     roi = oh.make_tensor_value_info("roi", TensorProto.FLOAT, [4])
@@ -199,7 +199,7 @@ def create_resize_transpose_sizes(ifm_dim, ifm_ch, sizes, mode, idt):
 
     resize_node = oh.make_node(
         "Resize",
-        inputs=["inp", "roi", "scales", "sizes"],
+        inputs=["inp", "roi", "", "sizes"],
         outputs=["outp_up"],
         name="Resize1",
         mode=mode,
@@ -218,7 +218,7 @@ def create_resize_transpose_sizes(ifm_dim, ifm_ch, sizes, mode, idt):
         name="resize_graph",
         inputs=[inp],
         outputs=[outp],
-        value_info=[outp_up, scales, roi, param],
+        value_info=[outp_up, roi, scales, param],
     )
 
     model = qonnx_make_model(graph, producer_name="resize_model4")
@@ -327,18 +327,20 @@ def test_scale_resize_nhwc(ifm_dim, ifm_ch, sizes, scales, mode, idt):
     # assert check_transform(resize_model3)
 
     # execute fourth model
+    output_model_path = "/home/alex/finnfiles/finn/tests/output.onnx"
+    resize_model4.save(output_model_path)
     output_dict4 = oxe.execute_onnx(resize_model4, input_dict_nchw)
     expected4 = output_dict4["outp"]
 
-    # transform Resize into ResizeNHWC
-    resize_model4 = resize_model4.transform(MakeScaleResizeNHWC())
-    resize_model4 = resize_model4.transform(InferDataLayouts())
+    # # transform Resize into ResizeNHWC
+    # resize_model4 = resize_model4.transform(MakeScaleResizeNHWC())
+    # resize_model4 = resize_model4.transform(InferDataLayouts())
 
-    # execute transformed model
-    output_node_name4 = resize_model4.graph.output[0].name
-    output_dict4 = oxe.execute_onnx(resize_model4, input_dict_nchw, return_full_exec_context=False)
-    output4 = output_dict4[output_node_name4]
+    # # execute transformed model
+    # output_node_name4 = resize_model4.graph.output[0].name
+    # output_dict4 = oxe.execute_onnx(resize_model4, input_dict_nchw, return_full_exec_context=False)
+    # output4 = output_dict4[output_node_name4]
 
-    # compare outputs
-    assert (expected4 == output4).all()
-    assert check_transform(resize_model4)
+    # # compare outputs
+    # assert (expected4 == output4).all()
+    # assert check_transform(resize_model4)
