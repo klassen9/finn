@@ -56,6 +56,9 @@ class UpsampleNearestNeighbour(HWCustomOp):
             "numInputVectors": ("i", False, 1),
             # Dimensionality mode: 0 = 2D square, 1 = 1D in H dim
             "DimMode": ("i", False, 0),
+            # Enable reprogrammable implementation to change IFMDim and scale
+            # Only for 1D H
+            "dynamic_mode" : ("i", False, 0, {0, 1}),
         }
         my_attrs.update(super().get_nodeattr_types())
         return my_attrs

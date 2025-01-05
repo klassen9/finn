@@ -57,6 +57,7 @@ class UpsampleNearestNeighbour_hls(UpsampleNearestNeighbour, HLSBackend):
 
     def defines(self, var):
         self.code_gen_dict["$DEFINES$"] = []
+        is_dynamic = self.get_nodeattr("dynamic_mode") == 1
 
         ifm_ch = self.get_nodeattr("NumChannels")
         self.code_gen_dict["$DEFINES$"] += ["#define IFMChannels {}".format(ifm_ch)]
@@ -64,19 +65,39 @@ class UpsampleNearestNeighbour_hls(UpsampleNearestNeighbour, HLSBackend):
         ibits = self.get_input_datatype().bitwidth()
         self.code_gen_dict["$DEFINES$"] += ["#define Input_precision {}".format(ibits)]
 
-        idim = self.get_nodeattr("IFMDim")
-        self.code_gen_dict["$DEFINES$"] += ["#define IFMDim {}".format(idim)]
+        if (not is_dynamic):
+            idim = self.get_nodeattr("IFMDim")
+            self.code_gen_dict["$DEFINES$"] += ["#define IFMDim {}".format(idim)]
 
-        odim = self.get_nodeattr("OFMDim")
-        self.code_gen_dict["$DEFINES$"] += ["#define OFMDim {}".format(odim)]
+            odim = self.get_nodeattr("OFMDim")
+            self.code_gen_dict["$DEFINES$"] += ["#define OFMDim {}".format(odim)]
 
-        batch_size = self.get_nodeattr("numInputVectors")
-        self.code_gen_dict["$DEFINES$"] += ["#define numReps {}".format(batch_size)]
+            batch_size = self.get_nodeattr("numInputVectors")
+            self.code_gen_dict["$DEFINES$"] += ["#define numReps {}".format(batch_size)]
+
+    def pragmas(self):
+        is_dynamic = self.get_nodeattr("dynamic_mode") == 1
+        
+        self.code_gen_dict["$PRAGMAS$"] = [
+            "#pragma HLS INTERFACE axis port=in0_" + self.hls_sname()
+        ]
+        self.code_gen_dict["$PRAGMAS$"].append(
+            "#pragma HLS INTERFACE axis port=out_" + self.hls_sname()
+        )
+
+        self.code_gen_dict["$PRAGMAS$"].append("#pragma HLS INTERFACE ap_ctrl_none port=return")
+
+        if is_dynamic:
+            self.code_gen_dict["$PRAGMAS$"].append("#pragma HLS INTERFACE s_axilite port = Scale bundle = control")
+            self.code_gen_dict["$PRAGMAS$"].append("#pragma HLS INTERFACE s_axilite port = IFMDim bundle = control")
+            self.code_gen_dict["$PRAGMAS$"].append("#pragma HLS INTERFACE s_axilite port = return bundle = control")     
 
     def docompute(self):
         is_2d = self.get_nodeattr("DimMode") == 0
         batch = self.get_nodeattr("numInputVectors")
+        is_dynamic = self.get_nodeattr("dynamic_mode") == 1
         if is_2d:
+            assert not is_dynamic, "Dynamic mode is only supported for 1D upsampling"
             self.code_gen_dict["$DOCOMPUTE$"] = [
                 """UpsampleNearestNeighbour_Batch<OFMDim, IFMDim, IFMChannels,
                 ap_uint<Input_precision> > (in0_%s, out_%s, numReps);"""
@@ -84,25 +105,48 @@ class UpsampleNearestNeighbour_hls(UpsampleNearestNeighbour, HLSBackend):
             ]
         else:
             assert batch == 1, "1D upsampler currently needs numReps=1"
-            self.code_gen_dict["$DOCOMPUTE$"] = [
-                """UpsampleNearestNeighbour_1D<OFMDim, IFMDim, IFMChannels,
-                ap_uint<Input_precision> > (in0_%s, out_%s);"""
-                % (self.hls_sname(), self.hls_sname())
-            ]
+
+            if is_dynamic:
+                self.code_gen_dict["$DOCOMPUTE$"] = [
+                    """UpsampleNearestNeighbourDyn_1D<IFMChannels,
+                    ap_uint<Input_precision> > (in0_%s, out_%s, Scale, IFMDim);"""
+                    % (self.hls_sname(), self.hls_sname())
+                ]
+
+            else:
+                self.code_gen_dict["$DOCOMPUTE$"] = [
+                    """UpsampleNearestNeighbour_1D<OFMDim, IFMDim, IFMChannels,
+                    ap_uint<Input_precision> > (in0_%s, out_%s);"""
+                    % (self.hls_sname(), self.hls_sname())
+                ]
 
     def blackboxfunction(self):
+        is_dynamic = self.get_nodeattr("dynamic_mode") == 1
         packed_bits = self.get_instream_width()
         packed_hls_type = "ap_uint<%d>" % packed_bits
-        self.code_gen_dict["$BLACKBOXFUNCTION$"] = [
-            "void %s(hls::stream<%s > &in0_%s, hls::stream<%s > &out_%s)"
-            % (
-                self.onnx_node.name,
-                packed_hls_type,
-                self.hls_sname(),
-                packed_hls_type,
-                self.hls_sname(),
-            )
-        ]
+
+        if is_dynamic:
+            self.code_gen_dict["$BLACKBOXFUNCTION$"] = [
+                "void %s(hls::stream<%s > &in0_%s, hls::stream<%s > &out_%s, unsigned Scale, unsigned IFMDim)"
+                % (
+                    self.onnx_node.name,
+                    packed_hls_type,
+                    self.hls_sname(),
+                    packed_hls_type,
+                    self.hls_sname(),
+                )
+            ]
+        else:
+            self.code_gen_dict["$BLACKBOXFUNCTION$"] = [
+                "void %s(hls::stream<%s > &in0_%s, hls::stream<%s > &out_%s)"
+                % (
+                    self.onnx_node.name,
+                    packed_hls_type,
+                    self.hls_sname(),
+                    packed_hls_type,
+                    self.hls_sname(),
+                )
+            ]
 
     def execute_node(self, context, graph):
         mode = self.get_nodeattr("exec_mode")
@@ -173,3 +217,22 @@ class UpsampleNearestNeighbour_hls(UpsampleNearestNeighbour, HLSBackend):
             context[node.output[0]].shape == exp_oshape
         ), """Output shape doesn't match expected shape
             (1, OutputDim, OutputDim, NumChannels)."""
+
+    def get_dynamic_config(self, Scales=None, IFMDim=None):
+        config = {}
+    
+        if Scales != None:
+            config.update({"cfg_Scales": (0x10, int(Scales))})
+
+        if IFMDim != None:
+            config.update({"cfg_IFMDim": (0x18, int(IFMDim))})  
+
+        return config
+    
+    def get_verilog_top_module_intf_names(self):
+        # Overload default HLSCustomOp implementation to add axilite control interface
+        is_dynamic = self.get_nodeattr("dynamic_mode") == 1
+        intf_names = super().get_verilog_top_module_intf_names()
+        if is_dynamic:
+            intf_names["axilite"] = ["s_axi_control"]
+        return intf_names
