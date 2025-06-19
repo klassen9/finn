@@ -18,6 +18,7 @@ from threading import Lock
 from finn.interface import IS_POSIX
 from finn.util.deps import get_deps_path
 
+# TODO: Change back
 FINN_DEPS = {
     "finn-experimental": (
         "https://github.com/Xilinx/finn-experimental.git",
@@ -30,8 +31,8 @@ FINN_DEPS = {
         True,
     ),
     "qonnx": (
-        "https://github.com/iksnagreb/qonnx.git",
-        "3d3d8964dbc5355d5c9be855d87b7b442508e3a4",
+        "https://github.com/klassen9/qonnx.git",
+        "2008faf7f84596d4a1e4057785d9dd8dc8ba1fe2",
         True,
     ),
     "dataset_loading": (
@@ -50,8 +51,8 @@ FINN_DEPS = {
         False,
     ),
     "finn-hlslib": (
-        "https://github.com/Xilinx/finn-hlslib.git",
-        "5c5ad631e3602a8dd5bd3399a016477a407d6ee7",
+        "https://github.com/klassen9/finn-hlslib.git",
+        "810671eeda2334a0e59929bcd1202d38b91e1f83",
         False,
     ),
     "attention-hlslib": (
