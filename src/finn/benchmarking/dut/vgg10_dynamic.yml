@@ -1,0 +1,33 @@
+model_path: models/vgg10_dynamic/model.onnx
+folding_config_file: models/vgg10_dynamic/ZCU104_folding_config.json
+specialize_layers_config_file: models/vgg10_dynamic/ZCU104_specialize_layers.json
+
+steps:
+  - finn.builder.custom_step_library.conv1d.step_layout # Custom step
+  - step_qonnx_to_finn
+  - finn.builder.custom_step_library.conv1d.step_io_surgery # Custom step
+  - step_tidy_up
+  - finn.builder.custom_step_library.conv1d.step_pre_streamline # Custom step
+  - step_streamline
+  - step_convert_to_hw
+  - finn.builder.custom_step_library.conv1d.step_convert_final_layers # Custom step
+  - step_create_dataflow_partition
+  - step_specialize_layers
+  - step_target_fps_parallelization
+  - step_apply_folding_config
+  - step_minimize_bit_width
+  - step_generate_estimate_reports
+  - step_hw_codegen
+  - step_hw_ipgen
+  - step_set_fifo_depths
+  - step_create_stitched_ip
+  #####- step_measure_rtlsim_performance
+  - step_out_of_context_synthesis
+  - step_synthesize_bitfile
+  - step_make_driver
+  - step_deployment_package
+
+# folding config does come with FIFO sizes
+auto_fifo_depths: False
+
+standalone_thresholds: True

@@ -401,6 +401,7 @@ if __name__ == "__main__":
             )
             configuration["live_fifo_sizing"] = [False]
             configuration["auto_fifo_depths"] = [False]
+            configuration["pl_reset_driver"] = [False]
             configuration["target_fps"] = ["None"]
             configuration["folding_config_file"] = [import_folding_path]
 

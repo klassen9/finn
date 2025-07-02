@@ -1066,6 +1066,28 @@ class ExperimentFlow:
             if gk not in experiment_config.keys():
                 experiment_config[gk] = self._config["global"][gk]
 
+class DynamicExperiment:
+    def __init__(self):
+        pass
+    
+    def writeFmPadConfig(config, accel):
+        for key, value in config.items():
+            addr, val = value
+            accel.write(addr, val)
+        
+    def writeConvInpGenConfig(config, accel):
+        for key, value in config.items():
+            addr, val = value
+            accel.write(addr, val)
+        accel.write(0, 1)
+        
+    def writeUpsampleConfig(accel, Scale=None, IFMDim=None):    
+        if(IFMDim != None):
+            accel.write(0x18, IFMDim)
+        
+        if(Scale != None):
+            accel.write(0x10, Scale) 
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:

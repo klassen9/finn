@@ -31,6 +31,7 @@ import json
 import numpy as np
 import os
 import shutil
+import onnx
 from copy import deepcopy
 from functools import partial
 from qonnx.core.modelwrapper import ModelWrapper
@@ -85,6 +86,8 @@ from finn.transformation.fpgadataflow.make_driver import (
     MakeCPPDriver,
     MakePYNQDriverInstrumentation,
     MakePYNQDriverIODMA,
+    create_pl_reset_driver,
+    create_dynamic_driver
 )
 from finn.transformation.fpgadataflow.make_zynq_proj import ZynqBuild
 from finn.transformation.fpgadataflow.minimize_accumulator_width import MinimizeAccumulatorWidth
@@ -823,6 +826,32 @@ def step_make_driver(model: ModelWrapper, cfg: DataflowBuildConfig):
     """Create a driver that can be used to interface the generated accelerator.
     Use DataflowBuildConfig to select PYNQ Python or C++ driver."""
 
+    #TODO move?
+    def is_dynamic(model: ModelWrapper):
+        graph = model.graph
+        def check_nodes(n):
+            dynamic_nodes = [n.op_type.startswith("ConvolutionInputGenerator"), n.op_type.startswith("FMPadding"), n.op_type.startswith("UpsampleNearestNeighbour")]
+            if any(dynamic_nodes):
+                n_inst = getCustomOp(n)
+                if n_inst.get_nodeattr("dynamic_mode"):
+                    return True
+            return False
+
+        for n in graph.node:
+            if n.op_type == "StreamingDataflowPartition":
+                n_inst = getCustomOp(n)
+                dataflowpath = n_inst.get_nodeattr("model")
+                dataflowmodel = onnx.load(dataflowpath)
+                dataflowgraph = dataflowmodel.graph
+                for nn in dataflowgraph.node:
+                    if check_nodes(nn):
+                        return True 
+            else:
+                if check_nodes(n):
+                    return True 
+        
+        return False 
+
     driver_dir = os.path.join(cfg.output_dir, "driver")
     if DataflowOutputType.PYNQ_DRIVER in cfg.generate_outputs:
         # generate PYNQ driver
@@ -836,6 +865,13 @@ def step_make_driver(model: ModelWrapper, cfg: DataflowBuildConfig):
             model = model.transform(
                 MakePYNQDriverIODMA(cfg._resolve_driver_platform(), cfg.validation_dataset)
             )
+        
+        if is_dynamic(model) or cfg.pl_reset_driver: 
+            create_pl_reset_driver(model)
+
+        if is_dynamic(model): 
+            create_dynamic_driver(model)
+        
         shutil.copytree(model.get_metadata_prop("pynq_driver_dir"), driver_dir, dirs_exist_ok=True)
         log.info("PYNQ Python driver written into " + driver_dir)
     elif DataflowOutputType.CPP_DRIVER in cfg.generate_outputs:
@@ -853,6 +889,9 @@ def step_make_driver(model: ModelWrapper, cfg: DataflowBuildConfig):
             "The step step_make_driver is in the build list but will not be executed"
             + " since no driver is selected in generate_outputs in your build.py file!"
         )
+
+
+
     return model
 
 

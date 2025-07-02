@@ -32,7 +32,7 @@ FINN_DEPS = {
     ),
     "qonnx": (
         "https://github.com/klassen9/qonnx.git",
-        "2008faf7f84596d4a1e4057785d9dd8dc8ba1fe2",
+        "c61118c41d18668691e26301cc82937ab407a942",
         True,
     ),
     "dataset_loading": (

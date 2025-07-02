@@ -397,7 +397,7 @@ class MakePYNQDriverIODMA(Transformation):
                     continue
 
         return (model, False)
-
+  
 
 class MakePYNQDriverInstrumentation(Transformation):
     def __init__(self, platform, clk_period_ns, live_fifo_sizing):
@@ -462,3 +462,16 @@ class MakePYNQDriverInstrumentation(Transformation):
             json.dump(settings, f, indent=2)
 
         return (model, False)
+
+def create_pl_reset_driver(model: ModelWrapper):
+        pynq_driver_dir = model.get_metadata_prop("pynq_driver_dir")
+        driver_reset_template = os.environ["FINN_QNN_DATA"] + "/templates/driver/driver_plreset.py"
+        driver_reset_py = pynq_driver_dir + "/driver_plreset.py"
+        shutil.copy(driver_reset_template, driver_reset_py)
+    
+def create_dynamic_driver(model: ModelWrapper):
+        pynq_driver_dir = model.get_metadata_prop("pynq_driver_dir")
+        driver_dynamic_template = os.environ["FINN_QNN_DATA"] + "/templates/driver/driver_dynamic.py"
+        driver_dynamic_py = pynq_driver_dir + "/driver_dynamic.py"
+        shutil.copy(driver_dynamic_template, driver_dynamic_py)
+    

@@ -1,0 +1,6 @@
+[
+    {
+        "dut": ["vgg10_dynamic"],
+        "generate_outputs": [["estimate_reports", "bitfile", "pynq_driver", "deployment_package"]]
+    },
+]

@@ -398,6 +398,9 @@ class DataflowBuildConfig(DataClassJSONMixin, DataClassYAMLMixin):
     #: Specify validation dataset to be used for deployment of the PYNQ driver
     validation_dataset: Optional[str] = None
 
+    #: Generates a driver to trigger the PL reset
+    pl_reset_driver: Optional[bool] = False
+
     def _resolve_hls_clk_period(self):
         if self.hls_clk_period_ns is None:
             # use same clk for synth and hls if not explicitly specified

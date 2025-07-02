@@ -415,7 +415,8 @@ class QuantReluHandler(QuantActBaseHandler):
         # TODO: No support for Rank >= 5
         if layout is None and len(shape) < 5:
             # Maps tensor rank to layout annotation
-            rank_to_layout = {0: None, 1: "C", 2: "NC", 3: "NWC", 4: "NCHW"}
+            rank_to_layout = {0: None, 1: "C", 2: "NC", 3: "NCW", 4: "NCHW"}
+            #rank_to_layout = {0: None, 1: "C", 2: "NC", 3: "NWC", 4: "NCHW"}
             # Lookup the layout required by this input shape
             layout = rank_to_layout[len(shape)]
         # If there is a layout annotation, use this to determine the index

@@ -389,6 +389,7 @@ class MakeZYNQProject(Transformation):
                         config,
                         self.enable_debug,
                         self.enable_gpio_reset,
+                        18
                     )
                 ).replace("$BOARDFILES$", str(get_deps_path() / "board_files"))
             )
