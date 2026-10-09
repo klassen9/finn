@@ -179,6 +179,17 @@ logic                        m_axis_read_data_tready_int_reg = 1'b0;
 logic                        m_axis_read_data_tlast_int;
 logic                        m_axis_read_data_tready_int_early;
 
+// output stage registers
+logic [AXIS_DATA_WIDTH-1:0] m_axis_read_data_tdata_reg  = {AXIS_DATA_WIDTH{1'b0}};
+logic [AXIS_KEEP_WIDTH-1:0] m_axis_read_data_tkeep_reg  = {AXIS_KEEP_WIDTH{1'b0}};
+logic                       m_axis_read_data_tvalid_reg = 1'b0, m_axis_read_data_tvalid_next;
+logic                       m_axis_read_data_tlast_reg  = 1'b0;
+
+logic [AXIS_DATA_WIDTH-1:0] temp_m_axis_read_data_tdata_reg  = {AXIS_DATA_WIDTH{1'b0}};
+logic [AXIS_KEEP_WIDTH-1:0] temp_m_axis_read_data_tkeep_reg  = {AXIS_KEEP_WIDTH{1'b0}};
+logic                       temp_m_axis_read_data_tvalid_reg = 1'b0, temp_m_axis_read_data_tvalid_next;
+logic                       temp_m_axis_read_data_tlast_reg  = 1'b0;
+
 assign m_axis_read_desc_status_valid = m_axis_read_desc_status_valid_reg;
 
 assign m_axi_arid = 0;
@@ -516,15 +527,6 @@ always_ff @(posedge aclk) begin
 end
 
 // output datapath logic
-logic [AXIS_DATA_WIDTH-1:0] m_axis_read_data_tdata_reg  = {AXIS_DATA_WIDTH{1'b0}};
-logic [AXIS_KEEP_WIDTH-1:0] m_axis_read_data_tkeep_reg  = {AXIS_KEEP_WIDTH{1'b0}};
-logic                       m_axis_read_data_tvalid_reg = 1'b0, m_axis_read_data_tvalid_next;
-logic                       m_axis_read_data_tlast_reg  = 1'b0;
-
-logic [AXIS_DATA_WIDTH-1:0] temp_m_axis_read_data_tdata_reg  = {AXIS_DATA_WIDTH{1'b0}};
-logic [AXIS_KEEP_WIDTH-1:0] temp_m_axis_read_data_tkeep_reg  = {AXIS_KEEP_WIDTH{1'b0}};
-logic                       temp_m_axis_read_data_tvalid_reg = 1'b0, temp_m_axis_read_data_tvalid_next;
-logic                       temp_m_axis_read_data_tlast_reg  = 1'b0;
 
 // datapath control
 logic store_axis_int_to_output;
